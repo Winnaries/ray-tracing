@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use rand::{thread_rng, Rng};
 use std::fmt::{self, Display};
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign};
 
@@ -25,6 +26,45 @@ impl Vec3 {
         Self { x, y, z }
     }
 
+    pub fn zeros() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
+    }
+
+    pub fn random() -> Self {
+        let mut rng = thread_rng();
+        Self::new(rng.gen(), rng.gen(), rng.gen())
+    }
+
+    pub fn random_range(min: f64, max: f64) -> Self {
+        let mut rng = thread_rng();
+        Self::new(
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+        )
+    }
+
+    pub fn random_within_unit_sphere() -> Self {
+        Self::random_within_sphere(1.0)
+    }
+
+    pub fn random_within_sphere(radius: f64) -> Self {
+        loop {
+            let p = Vec3::random_range(-1.0, 1.0); 
+            if p.length() < radius {
+                return p
+            }
+        }
+    }
+
+    pub fn random_unit_vector() -> Self {
+        Self::random_within_unit_sphere().unit()
+    }
+
     pub fn sum(&self) -> f64 {
         self.x + self.y + self.z
     }
@@ -45,11 +85,15 @@ impl Vec3 {
         *self / self.length()
     }
 
-    pub fn rgb(&self) -> Rgb {
+    pub fn rgb(&self, sample_per_pixel: u64) -> Rgb {
+        let scale = 1.0 / sample_per_pixel as f64;
+        let r = (self.x * scale).min(0.999).max(0.0).sqrt();
+        let g = (self.y * scale).min(0.999).max(0.0).sqrt();
+        let b = (self.z * scale).min(0.999).max(0.0).sqrt();
         Rgb(
-            (255.999 * self.x).floor() as u64,
-            (255.999 * self.y).floor() as u64,
-            (255.999 * self.z).floor() as u64,
+            (256.0 * r).floor() as u64,
+            (256.0 * g).floor() as u64,
+            (256.0 * b).floor() as u64,
         )
     }
 
@@ -249,13 +293,13 @@ impl DivAssign<f64> for Vec3 {
 }
 
 impl Neg for Vec3 {
-    type Output = Self; 
+    type Output = Self;
 
     fn neg(self) -> Self {
         Self {
-            x: -self.x, 
-            y: -self.y, 
-            z: -self.z, 
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
         }
     }
 }

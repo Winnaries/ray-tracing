@@ -1,16 +1,25 @@
+use camera::Camera;
+use random::random_double;
 use ray::{Hittable, HittableList, Ray};
 use sphere::Sphere;
+use std::f64::INFINITY;
 use std::rc::Rc;
-use std::f64::INFINITY; 
 use vec3::{Color, Point3, Vec3};
 
+mod camera;
+mod random;
 mod ray;
 mod sphere;
 mod vec3;
 
-fn ray_color(ray: Ray, world: &HittableList) -> Color {
-    if let Some(record) = world.hit(ray, 0.0, INFINITY) {
-        return 0.5 * (record.normal + Color::new(1.0, 1.0, 1.0));
+fn ray_color(ray: Ray, world: &HittableList, depth: u64) -> Color {
+    if depth == 0 {
+        return Color::new(0.0, 0.0, 0.0); 
+    }
+
+    if let Some(hit) = world.hit(ray, 0.001, INFINITY) {
+        let target = hit.point + hit.normal + Vec3::random_unit_vector();
+        return 0.5 * ray_color(Ray::new(hit.point, target - hit.point), world, depth - 1);
     }
 
     let unit_direction = ray.direction.unit();
@@ -22,6 +31,8 @@ fn main() {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400 as u64;
     let image_height = (image_width as f64 / aspect_ratio).round() as u64;
+    let sample_per_pixel = 100 as u64;
+    let max_depth = 50; 
 
     let mut world = HittableList::new();
     let sphere_a: Box<dyn Hittable> = Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5));
@@ -33,16 +44,7 @@ fn main() {
     world.add(sphere_a);
     world.add(sphere_b);
 
-    let viewport_height = 2.0 as f64;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
-
-    let origin = Point3::new(0.0, 0.0, 0.0);
-    let horizontal = Vec3::new(viewport_width, 0.0, 0.0);
-    let vertical = Vec3::new(0.0, viewport_height, 0.0);
-
-    let lower_left_corner =
-        origin - horizontal / 2.0 - vertical / 2.0 - Vec3::new(0.0, 0.0, focal_length);
+    let camera = Camera::default(); 
 
     println!("P3");
     println!("{} {}", image_width, image_height);
@@ -51,16 +53,17 @@ fn main() {
     for j in (0..image_height).rev() {
         eprint!("\rScanlines remaining: {:3}", j);
         for i in 0..image_width {
-            let u = i as f64 / (image_width - 1) as f64;
-            let v = j as f64 / (image_height - 1) as f64;
+            let mut sampled_color = Color::new(0.0, 0.0, 0.0);
 
-            let ray = Ray {
-                origin,
-                direction: lower_left_corner + horizontal * u + vertical * v - origin,
-            };
+            for _ in 0..sample_per_pixel {
+                let u = (i as f64 + random_double()) / (image_width - 1) as f64;
+                let v = (j as f64 + random_double()) / (image_height - 1) as f64;
+                let ray = camera.ray_at(u, v);
+                let color = ray_color(ray, &world, max_depth);
+                sampled_color += color;
+            }
 
-            let pixel = ray_color(ray, &world);
-            println!("{}", pixel.rgb());
+            println!("{}", sampled_color.rgb(sample_per_pixel));
         }
     }
 

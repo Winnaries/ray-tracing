@@ -65,6 +65,30 @@ impl Vec3 {
         Self::random_within_unit_sphere().unit()
     }
 
+    pub fn min(&self, v: f64) -> Self {
+        Self {
+            x: self.x.min(v), 
+            y: self.y.min(v), 
+            z: self.z.min(v), 
+        }
+    }
+
+    pub fn sqrt(&self) -> Self {
+        Self {
+            x: self.x.sqrt(), 
+            y: self.y.sqrt(), 
+            z: self.z.sqrt(), 
+        }
+    }
+
+    pub fn abs(&self) -> Self {
+        Self {
+            x: self.x.abs(), 
+            y: self.y.abs(), 
+            z: self.z.abs(), 
+        }
+    }
+
     pub fn sum(&self) -> f64 {
         self.x + self.y + self.z
     }

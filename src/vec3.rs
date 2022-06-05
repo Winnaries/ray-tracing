@@ -54,9 +54,9 @@ impl Vec3 {
 
     pub fn random_within_sphere(radius: f64) -> Self {
         loop {
-            let p = Vec3::random_range(-1.0, 1.0); 
+            let p = Vec3::random_range(-1.0, 1.0);
             if p.length() < radius {
-                return p
+                return p;
             }
         }
     }
@@ -95,6 +95,11 @@ impl Vec3 {
             (256.0 * g).floor() as u64,
             (256.0 * b).floor() as u64,
         )
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s: f64 = 1e-8;
+        self.x < s && self.y < s && self.z < s
     }
 
     pub fn length(&self) -> f64 {

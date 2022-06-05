@@ -1,12 +1,14 @@
 use camera::Camera;
+use material::{Lambertian, Metal};
 use random::random_double;
 use ray::{Hittable, HittableList, Ray};
 use sphere::Sphere;
 use std::f64::INFINITY;
 use std::rc::Rc;
-use vec3::{Color, Point3, Vec3};
+use vec3::{Color, Point3};
 
 mod camera;
+mod material;
 mod random;
 mod ray;
 mod sphere;
@@ -14,12 +16,15 @@ mod vec3;
 
 fn ray_color(ray: Ray, world: &HittableList, depth: u64) -> Color {
     if depth == 0 {
-        return Color::new(0.0, 0.0, 0.0); 
+        return Color::new(0.0, 0.0, 0.0);
     }
 
     if let Some(hit) = world.hit(ray, 0.001, INFINITY) {
-        let target = hit.point + hit.normal + Vec3::random_unit_vector();
-        return 0.5 * ray_color(Ray::new(hit.point, target - hit.point), world, depth - 1);
+        if let Some((scattered, attenuation)) = hit.material.scatter(ray, &hit) {
+            return attenuation * ray_color(scattered, world, depth - 1);
+        } else {
+            return Color::new(0.0, 0.0, 0.0);
+        }
     }
 
     let unit_direction = ray.direction.unit();
@@ -29,22 +34,43 @@ fn ray_color(ray: Ray, world: &HittableList, depth: u64) -> Color {
 
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400 as u64;
+    let image_width = 1600 as u64;
     let image_height = (image_width as f64 / aspect_ratio).round() as u64;
     let sample_per_pixel = 100 as u64;
-    let max_depth = 50; 
+    let max_depth = 50;
 
     let mut world = HittableList::new();
-    let sphere_a: Box<dyn Hittable> = Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5));
-    let sphere_b: Box<dyn Hittable> = Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0));
 
-    let sphere_a = Rc::new(sphere_a);
-    let sphere_b = Rc::new(sphere_b);
+    let material_ground = Rc::new(Lambertian::new(Color::new(0.8, 0.8, 0.8)));
+    let material_center = Rc::new(Lambertian::new(Color::new(0.7, 0.3, 0.3)));
+    let material_left = Rc::new(Metal::new(Color::new(0.8, 0.8, 0.8)));
+    let material_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2)));
 
-    world.add(sphere_a);
-    world.add(sphere_b);
+    world.add(Rc::new(Sphere::new(
+        Point3::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground.clone(),
+    )));
 
-    let camera = Camera::default(); 
+    world.add(Rc::new(Sphere::new(
+        Point3::new(0.0, 0.0, -1.0),
+        0.5,
+        material_center.clone(),
+    )));
+
+    world.add(Rc::new(Sphere::new(
+        Point3::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left.clone(),
+    )));
+
+    world.add(Rc::new(Sphere::new(
+        Point3::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right.clone(),
+    )));
+
+    let camera = Camera::default();
 
     println!("P3");
     println!("{} {}", image_width, image_height);

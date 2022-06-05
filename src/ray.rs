@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::material::Material;
 use crate::vec3::{Point3, Vec3};
 use std::rc::Rc;
 
@@ -11,10 +12,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(origin: Point3, direction: Vec3) -> Ray {
-        Ray {
-            origin,
-            direction, 
-        }
+        Ray { origin, direction }
     }
 
     pub fn at(&self, t: f64) -> Point3 {
@@ -22,12 +20,13 @@ impl Ray {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone)]
 pub struct HitRecord {
+    pub t: f64,
     pub point: Point3,
     pub normal: Vec3,
-    pub t: f64,
     pub front_face: bool,
+    pub material: Rc<dyn Material>,
 }
 
 pub trait Hittable {
@@ -48,34 +47,32 @@ impl HitRecord {
 }
 
 pub struct HittableList {
-    pub objects: Vec<Rc<Box<dyn Hittable>>>
+    pub objects: Vec<Rc<dyn Hittable>>,
 }
 
 impl HittableList {
     pub fn new() -> Self {
-        Self {
-            objects: vec![], 
-        }
+        Self { objects: vec![] }
     }
 
     pub fn clear(&mut self) {
-        self.objects.clear(); 
+        self.objects.clear();
     }
 
-    pub fn add(&mut self, object: Rc<Box<dyn Hittable>>) {
+    pub fn add(&mut self, object: Rc<dyn Hittable>) {
         self.objects.push(object);
     }
 }
 
 impl Hittable for HittableList {
     fn hit(&self, ray: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let mut closest = t_max; 
-        let mut temp_record: Option<HitRecord> = None; 
+        let mut closest = t_max;
+        let mut temp_record: Option<HitRecord> = None;
 
         for o in &self.objects {
             if let Some(record) = o.hit(ray, t_min, closest) {
                 closest = record.t;
-                temp_record = Some(record); 
+                temp_record = Some(record);
             }
         }
 
